@@ -25,7 +25,7 @@
             justify-content: center;
         }
 
-        .container { width: 100%; max-width: 800px; }
+        .container { width: 100%; max-width: 850px; }
         .card {
             background-color: var(--card-bg);
             border-radius: 8px;
@@ -50,7 +50,7 @@
         }
 
         button {
-            padding: 10px 18px;
+            padding: 10px 16px;
             border-radius: 4px;
             border: none;
             background-color: var(--accent-color);
@@ -69,7 +69,38 @@
 
         .status { margin-top: 12px; font-weight: bold; }
         .hidden { display: none; }
-        pre { background: #111; padding: 15px; border-radius: 4px; max-height: 300px; overflow-y: auto; color: #00ff66; }
+
+        /* Collapsible Log UI Styles */
+        .log-row td {
+            padding: 0;
+            background-color: #161616;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease;
+            padding: 0 16px;
+        }
+
+        .collapsible-content.open {
+            max-height: 400px;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        pre {
+            margin: 0;
+            background: #0d0d0d;
+            padding: 12px;
+            border-radius: 4px;
+            color: #00ff66;
+            font-family: monospace;
+            font-size: 0.85em;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -99,19 +130,11 @@
             <tbody id="rosterTableBody"></tbody>
         </table>
     </div>
-
-    <div id="inspectorCard" class="card hidden">
-        <h2>Player Log Inspector</h2>
-        <div id="logOutput"><pre>Select a player from the roster above to inspect logs...</pre></div>
-    </div>
 </div>
 
 <script>
-    // Config: Update with your Val Town Endpoint
-    const VAL_TOWN_URL = "https://unboundddestiny--1cf34a4c90c111f182311607ee4eb77e.web.val.run";
-
-    // Set your preset Admin User IDs here
-    const PRESET_ADMIN_IDS = [4427995, 9876543];
+    const VAL_TOWN_URL = "https://your-val-username-valname.web.val.run"; // Update with your actual Val URL
+    const PRESET_ADMIN_IDS = [1234567, 9876543]; // Put your Torn User IDs here
 
     let currentUserId = null;
     let isAdmin = false;
@@ -147,11 +170,8 @@
             const data = await res.json();
 
             if (res.ok && data.success) {
-                // Save key locally so user doesn't need to re-enter
                 localStorage.setItem('torn_api_key', apiKey);
                 currentUserId = data.userId;
-
-                // Check if User ID matches preset Admin IDs
                 isAdmin = PRESET_ADMIN_IDS.includes(Number(currentUserId));
 
                 statusDiv.style.color = "#4caf50";
@@ -173,10 +193,8 @@
     function toggleAdminUI(adminStatus) {
         if (adminStatus) {
             document.getElementById('adminActionHeader').classList.remove('hidden');
-            document.getElementById('inspectorCard').classList.remove('hidden');
         } else {
             document.getElementById('adminActionHeader').classList.add('hidden');
-            document.getElementById('inspectorCard').classList.add('hidden');
         }
     }
 
@@ -198,26 +216,50 @@
             tbody.innerHTML = '';
 
             roster.forEach(player => {
-                const row = document.createElement('tr');
+                // User Row
+                const userRow = document.createElement('tr');
                 let adminCell = isAdmin 
-                    ? `<td><button onclick="inspectLogs(${player.userId})">Inspect Logs</button></td>` 
+                    ? `<td><button onclick="toggleLogs(${player.userId})">Inspect Logs</button></td>` 
                     : '';
 
-                row.innerHTML = `
+                userRow.innerHTML = `
                     <td><strong>${player.username}</strong></td>
                     <td>Level ${player.level}</td>
                     ${adminCell}
                 `;
-                tbody.appendChild(row);
+                tbody.appendChild(userRow);
+
+                // Collapsible Log Drawer Row
+                if (isAdmin) {
+                    const logRow = document.createElement('tr');
+                    logRow.className = 'log-row';
+                    logRow.innerHTML = `
+                        <td colspan="3">
+                            <div id="logs-${player.userId}" class="collapsible-content">
+                                <pre>Click 'Inspect Logs' to fetch log data...</pre>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(logRow);
+                }
             });
         } catch (e) {
             console.error("Failed to load roster", e);
         }
     }
 
-    async function inspectLogs(targetUserId) {
-        const output = document.getElementById('logOutput');
-        output.innerHTML = "<pre>Fetching user logs...</pre>";
+    async function toggleLogs(targetUserId) {
+        const container = document.getElementById(`logs-${targetUserId}`);
+        
+        // Toggle close if already open
+        if (container.classList.contains('open')) {
+            container.classList.remove('open');
+            return;
+        }
+
+        // Open container and fetch logs
+        container.classList.add('open');
+        container.innerHTML = "<pre>Fetching last 24h Torn logs...</pre>";
 
         try {
             const res = await fetch(`${VAL_TOWN_URL}/api/inspect`, {
@@ -225,15 +267,23 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ targetUserId })
             });
+
             const data = await res.json();
 
             if (res.ok && data.success) {
-                output.innerHTML = `<pre>${JSON.stringify(data.logs, null, 2)}</pre>`;
+                const logEntries = data.logs;
+                const logCount = Object.keys(logEntries).length;
+
+                if (logCount === 0) {
+                    container.innerHTML = `<pre style="color:#e0e0e0;">No logs recorded in the last 24 hours for this player.</pre>`;
+                } else {
+                    container.innerHTML = `<pre>${JSON.stringify(logEntries, null, 2)}</pre>`;
+                }
             } else {
-                output.innerHTML = `<pre style="color:#f44336;">Error: ${data.error}</pre>`;
+                container.innerHTML = `<pre style="color:#f44336;">Error: ${data.error}</pre>`;
             }
         } catch {
-            output.innerHTML = `<pre style="color:#f44336;">Failed to fetch logs.</pre>`;
+            container.innerHTML = `<pre style="color:#f44336;">Failed to communicate with server.</pre>`;
         }
     }
 

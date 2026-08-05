@@ -6,39 +6,53 @@
   <title>Torn City Registry</title>
   <style>
     :root { --bg: #0f1115; --card: #181b21; --border: #2d3139; --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --success: #3fb950; --danger: #f85149; --gold: #d29922; }
-    body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 2rem; line-height: 1.5; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 2rem; line-height: 1.5; }
     .container { max-width: 1200px; margin: 0 auto; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
-    .badge { padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
+    .badge { padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.8rem; font-weight: bold; display: inline-block; }
     .badge-admin { background: var(--gold); color: #000; }
     .badge-user { background: #333; color: var(--muted); }
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; font-size: 0.9rem; }
+    .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; font-size: 0.9rem; display: inline-block; }
     .btn-primary { background: var(--accent); color: #000; }
     .btn-secondary { background: #333; color: #fff; }
+    .btn:hover { opacity: 0.85; }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    input { width: 100%; padding: 0.8rem; border: 1px solid var(--border); border-radius: 6px; background: #000; color: #fff; font-size: 1rem; margin-bottom: 1rem; }
+    input[type="password"] { width: 100%; padding: 0.8rem; border: 1px solid var(--border); border-radius: 6px; background: #000; color: #fff; font-size: 1rem; margin-bottom: 1rem; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
-    .agent-card { background: #22262e; border: 1px solid #333; padding: 1rem; border-radius: 8px; display: flex; flex-direction: column; justify-content: space-between; }
-    .agent-name { font-size: 1.2rem; font-weight: bold; color: var(--accent); }
-    .agent-id { color: var(--muted); font-family: monospace; margin-bottom: 1rem; }
+    .agent-card { background: #22262e; border: 1px solid #333; padding: 1.2rem; border-radius: 8px; display: flex; flex-direction: column; justify-content: space-between; min-height: 140px; }
+    .agent-name { font-size: 1.2rem; font-weight: bold; color: var(--accent); word-break: break-word; }
+    .agent-id { color: var(--muted); font-family: monospace; margin: 0.3rem 0 1rem; }
     table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 1rem; }
-    th { text-align: left; padding: 0.8rem; background: #000; color: var(--muted); border-bottom: 2px solid var(--border); position: sticky; top: 0; }
-    td { padding: 0.8rem; border-bottom: 1px solid var(--border); }
+    th { text-align: left; padding: 0.8rem; background: #000; color: var(--muted); border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 1; }
+    td { padding: 0.8rem; border-bottom: 1px solid var(--border); word-break: break-word; }
     tr:hover { background: rgba(255,255,255,0.05); }
-    .pos { color: var(--success); font-weight: bold; } .neg { color: var(--danger); font-weight: bold; }
+    .pos { color: var(--success); font-weight: bold; }
+    .neg { color: var(--danger); font-weight: bold; }
     .status { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; background: #333; display: inline-block; }
     .status.hospital { background: var(--danger); color: #fff; }
     .status.jail { background: var(--gold); color: #000; }
-    .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
-    .tab { padding: 0.8rem 1.5rem; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); }
-    .tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
-    .tab-content { display: none; } .tab-content.active { display: block; }
+    .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .tab { padding: 0.8rem 1.5rem; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); user-select: none; }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
     .hidden { display: none !important; }
     .loader { border: 3px solid #333; border-top: 3px solid var(--accent); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 2rem auto; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .alert { padding: 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem; }
+    .alert { padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem; font-size: 0.9rem; }
     .alert-info { background: rgba(88,166,255,0.1); border: 1px solid var(--accent); color: var(--accent); }
+    .msg-error { color: var(--danger); margin-top: 0.8rem; font-size: 0.9rem; min-height: 1.4em; }
+    /* Inspector modal overlay */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 99; }
+    .modal-panel { position: fixed; top: 3%; left: 3%; width: 94%; height: 94%; overflow-y: auto; z-index: 100; background: var(--bg); border: 2px solid var(--accent); border-radius: 10px; padding: 2rem; }
+    @media (max-width: 768px) {
+      body { padding: 1rem; }
+      .modal-panel { top: 0; left: 0; width: 100%; height: 100%; border-radius: 0; border: none; }
+      .header h1 { font-size: 1.3rem; }
+    }
   </style>
 </head>
 <body>
@@ -50,55 +64,83 @@
 
   <!-- LOGIN VIEW -->
   <div id="loginView" class="card">
-    <h2>🔐 Login / Register</h2>
-    <p style="color: var(--muted)">Anyone can log in and register their key. Only authorized inspectors can view logs.</p>
-    <input type="password" id="loginKey" placeholder="Paste your Limited API Key...">
-    <button class="btn btn-primary" id="loginBtn">Login & Register</button>
-    <div id="loginMsg" style="margin-top: 1rem; color: var(--danger);"></div>
+    <h2>🔐 Login &amp; Register</h2>
+    <p style="color: var(--muted); margin-bottom: 1rem;">Anyone with a valid Torn API key can log in and register. Only authorized inspectors can view other players' logs.</p>
+    <input type="password" id="loginKey" placeholder="Paste your Limited API Key..." autocomplete="off">
+    <button class="btn btn-primary" id="loginBtn">Login &amp; Register</button>
+    <div id="loginMsg" class="msg-error"></div>
   </div>
 
   <!-- DASHBOARD VIEW -->
   <div id="dashView" class="hidden">
     <div id="permissionAlert" class="alert alert-info hidden"></div>
-    <h2>Registered Players</h2>
+    <h2 style="margin-bottom: 1rem;">Registered Players</h2>
     <div id="agentGrid" class="grid"></div>
-    
-    <!-- INSPECTOR MODAL -->
-    <div id="inspector" class="card hidden" style="position: fixed; top: 5%; left: 5%; width: 90%; height: 90%; overflow-y: auto; z-index: 100; background: var(--bg); border: 2px solid var(--accent);">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h2 id="inspTitle">Inspector</h2>
-        <button class="btn btn-secondary" onclick="closeInspector()">Close</button>
-      </div>
-      <div id="inspContent"></div>
-    </div>
   </div>
 </div>
 
+<!-- INSPECTOR MODAL -->
+<div id="modalOverlay" class="modal-overlay hidden" onclick="closeInspector()"></div>
+<div id="inspector" class="modal-panel hidden">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.5rem;">
+    <h2 id="inspTitle">Inspector</h2>
+    <button class="btn btn-secondary" onclick="closeInspector()">✕ Close</button>
+  </div>
+  <div id="inspContent"></div>
+</div>
+
 <script>
-const API = "https://unboundddestiny--1cf34a4c90c111f182311607ee4eb77e.web.val.run"; // ⬅️ UPDATE THIS
+// ⬇️ REPLACE WITH YOUR VAL.TOWN ENDPOINT URL ⬇️
+const API = "https://unboundddestiny--1cf34a4c90c111f182311607ee4eb77e.web.val.run";
+// ⬆️ REPLACE WITH YOUR VAL.TOWN ENDPOINT URL ⬆️
+
 let sessionKey = localStorage.getItem('torn_admin_key');
 let currentUser = null;
 
 const $ = (s) => document.querySelector(s);
-const show = (el) => el.classList.remove('hidden');
-const hide = (el) => el.classList.add('hidden');
+const show = (el) => el && el.classList.remove('hidden');
+const hide = (el) => el && el.classList.add('hidden');
+
+// --- SAFE STRING HELPERS ---
+function str(val, fallback = 'N/A') {
+  if (val == null) return fallback;
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+  return fallback;
+}
 
 function formatMoney(amount) {
   const n = parseInt(amount);
+  if (isNaN(n)) return '<span class="muted">N/A</span>';
   const cls = n >= 0 ? 'pos' : 'neg';
   return `<span class="${cls}">$${n.toLocaleString()}</span>`;
 }
 
 function formatDate(timestamp) {
   if (!timestamp) return 'N/A';
-  return new Date(timestamp * 1000).toLocaleString();
+  const d = new Date(typeof timestamp === 'number' ? timestamp * 1000 : timestamp);
+  if (isNaN(d.getTime())) return 'N/A';
+  return d.toLocaleString();
 }
 
 function getStatusHtml(status) {
-  if (!status) return '<span class="status">Okay</span>';
-  const desc = status.description || 'Okay';
+  if (!status || typeof status !== 'object') return '<span class="status">Okay</span>';
+  const desc = str(status.description, 'Okay');
   const cls = desc.includes('Hospital') ? 'hospital' : (desc.includes('Jail') ? 'jail' : '');
   return `<span class="status ${cls}">${desc}</span>`;
+}
+
+// --- SAFE ERROR MESSAGE DISPLAY ---
+function showError(el, err) {
+  let msg;
+  if (typeof err === 'string') msg = err;
+  else if (err instanceof Error) msg = err.message;
+  else if (typeof err === 'object' && err !== null) {
+    msg = typeof err.error === 'string' ? err.error : JSON.stringify(err);
+  } else {
+    msg = String(err);
+  }
+  el.innerText = `❌ ${msg}`;
 }
 
 // --- AUTHENTICATION ---
@@ -106,153 +148,196 @@ async function checkSession() {
   if (!sessionKey) {
     show($('#loginView'));
     hide($('#dashView'));
+    $('#userInfo').innerHTML = '';
     return;
   }
   try {
     const res = await fetch(`${API}/whoami`, { headers: { 'X-Torn-Key': sessionKey } });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.valid) {
-        currentUser = data;
-        const badge = data.can_inspect 
-          ? '<span class="badge badge-admin">INSPECTOR</span>' 
-          : '<span class="badge badge-user">MEMBER</span>';
-        
-        $('#userInfo').innerHTML = `
-          <span style="margin-right:1rem">${badge} <strong>${data.name}</strong> [${data.id}]</span>
-          <button class="btn btn-secondary" id="logoutBtn">Logout</button>
-        `;
-        $('#logoutBtn').onclick = () => {
-          localStorage.removeItem('torn_admin_key');
-          location.reload();
-        };
-        
-        hide($('#loginView'));
-        show($('#dashView'));
-        
-        // Show permission alert for non-inspectors
-        if (!data.can_inspect) {
-          $('#permissionAlert').textContent = "ℹ️ You are logged in as a member. You can register your key but cannot inspect other players' logs.";
-          show($('#permissionAlert'));
-        } else {
-          hide($('#permissionAlert'));
-        }
-        
-        loadAgents();
-        return;
+    const data = await res.json();
+    if (res.ok && data.valid) {
+      currentUser = data;
+      const badge = data.can_inspect
+        ? '<span class="badge badge-admin">INSPECTOR</span>'
+        : '<span class="badge badge-user">MEMBER</span>';
+
+      $('#userInfo').innerHTML = `
+        <span style="margin-right:0.8rem">${badge} <strong>${str(data.name, 'Unknown')}</strong> [${str(data.id, '?')}]</span>
+        <button class="btn btn-secondary" id="logoutBtn">Logout</button>
+      `;
+      $('#logoutBtn').onclick = () => {
+        localStorage.removeItem('torn_admin_key');
+        location.reload();
+      };
+
+      hide($('#loginView'));
+      show($('#dashView'));
+
+      if (!data.can_inspect) {
+        $('#permissionAlert').textContent = 'ℹ️ You are logged in as a member. You can register your key but cannot inspect other players\' logs.';
+        show($('#permissionAlert'));
+      } else {
+        hide($('#permissionAlert'));
       }
+
+      loadAgents();
+      return;
     }
-  } catch (e) {}
+  } catch (e) { /* fall through to logout */ }
+
   localStorage.removeItem('torn_admin_key');
   sessionKey = null;
+  currentUser = null;
   checkSession();
 }
 
 $('#loginBtn').onclick = async () => {
   const key = $('#loginKey').value.trim();
-  $('#loginMsg').innerText = "Verifying...";
+  const msgEl = $('#loginMsg');
+  if (!key) { msgEl.innerText = '❌ Please enter an API key'; return; }
+
+  msgEl.innerText = 'Verifying...';
   try {
-    // First verify the key
     const whoamiRes = await fetch(`${API}/whoami`, { headers: { 'X-Torn-Key': key } });
     const whoamiData = await whoamiRes.json();
-    
+
     if (!whoamiRes.ok || !whoamiData.valid) {
-      $('#loginMsg').innerText = `❌ ${whoamiData.error || 'Invalid API Key'}`;
+      showError(msgEl, whoamiData);
       return;
     }
 
-    // Then register/update the key
     const regRes = await fetch(`${API}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Torn-Key': key },
       body: JSON.stringify({ api_key: key })
     });
     const regData = await regRes.json();
-    
+
     if (!regRes.ok) {
-      $('#loginMsg').innerText = `❌ Registration failed: ${regData.error}`;
+      showError(msgEl, regData);
       return;
     }
 
     sessionKey = key;
     localStorage.setItem('torn_admin_key', key);
+    msgEl.innerText = '';
     checkSession();
   } catch (e) {
-    $('#loginMsg').innerText = "❌ Connection Error";
+    showError(msgEl, e);
   }
 };
 
 // --- DASHBOARD ---
 async function loadAgents() {
-  const res = await fetch(`${API}/admins`);
-  const { admins } = await res.json();
   const grid = $('#agentGrid');
-  grid.innerHTML = '';
-  
-  if (!admins || !admins.length) {
-    grid.innerHTML = '<p style="color:var(--muted)">No players registered yet.</p>';
-    return;
-  }
+  grid.innerHTML = '<p style="color:var(--muted)">Loading...</p>';
+  try {
+    const res = await fetch(`${API}/admins`);
+    const json = await res.json();
+    const admins = Array.isArray(json.admins) ? json.admins : [];
 
-  admins.forEach(a => {
-    const card = document.createElement('div');
-    card.className = 'agent-card';
-    
-    // Only show Inspect button if user has permission
-    const inspectBtn = currentUser?.can_inspect
-      ? `<button class="btn btn-primary" style="margin-top:1rem" onclick="inspectAgent(${a.torn_id}, '${a.player_name.replace(/'/g, "\\'")}')">Inspect Logs</button>`
-      : `<button class="btn btn-secondary" style="margin-top:1rem" disabled title="Inspector access required">Inspect Locked</button>`;
-    
-    card.innerHTML = `
-      <div>
-        <div class="agent-name">${a.player_name || 'Unknown'}</div>
-        <div class="agent-id">ID: ${a.torn_id}</div>
-        <div style="font-size:0.8rem; color:var(--muted)">Registered: ${new Date(a.registered_at).toLocaleDateString()}</div>
-      </div>
-      ${inspectBtn}
-    `;
-    grid.appendChild(card);
-  });
+    if (!admins.length) {
+      grid.innerHTML = '<p style="color:var(--muted)">No players registered yet.</p>';
+      return;
+    }
+
+    grid.innerHTML = admins.map(a => {
+      const name = str(a.player_name, 'Unknown');
+      const id = str(a.torn_id, '?');
+      const date = a.registered_at ? new Date(a.registered_at).toLocaleDateString() : 'N/A';
+      const safeName = name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+      const inspectBtn = currentUser?.can_inspect
+        ? `<button class="btn btn-primary" style="margin-top:auto" onclick="inspectAgent(${parseInt(a.torn_id)}, '${safeName}')">Inspect Logs</button>`
+        : `<button class="btn btn-secondary" style="margin-top:auto" disabled title="Inspector access required">🔒 Inspect Locked</button>`;
+
+      return `<div class="agent-card">
+        <div>
+          <div class="agent-name">${name}</div>
+          <div class="agent-id">ID: ${id}</div>
+          <div style="font-size:0.8rem; color:var(--muted)">Registered: ${date}</div>
+        </div>
+        ${inspectBtn}
+      </div>`;
+    }).join('');
+  } catch (e) {
+    grid.innerHTML = `<p style="color:var(--danger)">Error loading list: ${str(e?.message || e, 'Unknown error')}</p>`;
+  }
 }
 
 // --- INSPECTOR ---
 async function inspectAgent(id, name) {
   if (!currentUser?.can_inspect) return;
-  
+
+  show($('#modalOverlay'));
   show($('#inspector'));
   $('#inspTitle').innerText = `Inspecting: ${name} [${id}]`;
-  $('#inspContent').innerHTML = '<div class="loader"></div><p style="text-align:center">Fetching combined dossier...</p>';
-  
+  $('#inspContent').innerHTML = '<div class="loader"></div><p style="text-align:center;color:var(--muted)">Fetching combined dossier...</p>';
+
   try {
     const res = await fetch(`${API}/inspect?torn_id=${id}`, { headers: { 'X-Torn-Key': sessionKey } });
     const json = await res.json();
-    
-    // ✅ FIX: Safe data extraction to prevent "undefined is not an object"
-    if (!res.ok || !json.data) {
-      $('#inspContent').innerHTML = `<p style="color:var(--danger)">❌ ${json.error || 'Failed to load data'}</p>`;
+
+    if (!res.ok || !json.data || typeof json.data !== 'object') {
+      const errMsg = typeof json === 'object' && json !== null
+        ? (typeof json.error === 'string' ? json.error : JSON.stringify(json))
+        : String(json);
+      $('#inspContent').innerHTML = `<p style="color:var(--danger)">❌ ${errMsg}</p>`;
       return;
     }
-    
+
     renderDossier(json.data);
   } catch (e) {
-    $('#inspContent').innerHTML = `<p style="color:var(--danger)">❌ Network Error: ${e.message}</p>`;
+    $('#inspContent').innerHTML = `<p style="color:var(--danger)">❌ Network Error: ${str(e?.message || e, 'Unknown')}</p>`;
   }
 }
 
 function renderDossier(data) {
-  // ✅ FIX: Defensive defaults for every field
-  const profile = data?.profile || {};
+  const profile = (data && typeof data.profile === 'object') ? data.profile : {};
   const attacks = Array.isArray(data?.attacks) ? data.attacks.slice(0, 10) : [];
   const money = Array.isArray(data?.money) ? data.money.slice(0, 10) : [];
   const items = Array.isArray(data?.items) ? data.items.slice(0, 10) : [];
 
-  const html = `
+  const playerName = str(profile.name, 'Unknown');
+  const playerLevel = str(profile.level, '?');
+  const factionPos = profile.faction && typeof profile.faction === 'object'
+    ? str(profile.faction.position, 'None')
+    : str(profile.faction, 'None');
+  const lastAction = profile.last_action && typeof profile.last_action === 'object'
+    ? str(profile.last_action.relative, 'N/A')
+    : str(profile.last_action, 'N/A');
+
+  const attackRows = attacks.length ? attacks.map(a => {
+    const defender = str(a.defender_name, 'Unknown');
+    const result = str(a.result, '?');
+    const respect = a.respect_gain != null ? String(a.respect_gain) : 'N/A';
+    const isAttacker = str(a.attacker_name) === playerName;
+    return `<tr>
+      <td>${formatDate(a.timestamp_ended)}</td>
+      <td>${defender}</td>
+      <td>${isAttacker ? '⚔️ Attacked' : '🛡️ Defended'} (${result})</td>
+      <td>${respect}</td>
+    </tr>`;
+  }).join('') : '';
+
+  const moneyRows = money.length ? money.map(m => `<tr>
+    <td>${formatDate(m.timestamp)}</td>
+    <td>${str(m.description, 'Transaction')}</td>
+    <td>${formatMoney(m.amount)}</td>
+  </tr>`).join('') : '';
+
+  const itemRows = items.length ? items.map(i => `<tr>
+    <td>${formatDate(i.timestamp)}</td>
+    <td>${str(i.action, 'Unknown')}</td>
+    <td>${str(i.item_name, str(i.id, 'Unknown'))}</td>
+  </tr>`).join('') : '';
+
+  $('#inspContent').innerHTML = `
     <div class="card" style="background:#111">
-      <h3>${profile.name || 'Unknown'} (Level ${profile.level || '?'})</h3>
+      <h3>${playerName} (Level ${playerLevel})</h3>
       <div style="display:flex; gap:2rem; margin-top:0.5rem; flex-wrap:wrap;">
         <div><strong>Status:</strong> ${getStatusHtml(profile.status)}</div>
-        <div><strong>Faction:</strong> ${profile.faction?.position || 'None'}</div>
-        <div><strong>Last Action:</strong> ${profile.last_action?.relative || 'N/A'}</div>
+        <div><strong>Faction:</strong> ${factionPos}</div>
+        <div><strong>Last Action:</strong> ${lastAction}</div>
       </div>
     </div>
 
@@ -263,51 +348,39 @@ function renderDossier(data) {
     </div>
 
     <div id="tab-attacks" class="tab-content active">
-      ${attacks.length ? `<table>
-        <tr><th>Time</th><th>Target</th><th>Result</th><th>Respect</th></tr>
-        ${attacks.map(a => `<tr>
-          <td>${formatDate(a.timestamp_ended)}</td>
-          <td>${a.defender_name || 'Unknown'}</td>
-          <td>${a.attacker_name === profile.name ? '⚔️ Attacked' : '🛡️ Defended'} (${a.result || '?'})</td>
-          <td>${a.respect_gain ?? 'N/A'}</td>
-        </tr>`).join('')}
-      </table>` : '<p style="color:var(--muted);padding:1rem">No recent attacks found.</p>'}
+      ${attacks.length
+        ? `<table><tr><th>Time</th><th>Target</th><th>Result</th><th>Respect</th></tr>${attackRows}</table>`
+        : '<p style="color:var(--muted);padding:1rem">No recent attacks found.</p>'}
     </div>
 
     <div id="tab-money" class="tab-content">
-      ${money.length ? `<table>
-        <tr><th>Time</th><th>Description</th><th>Amount</th></tr>
-        ${money.map(m => `<tr>
-          <td>${formatDate(m.timestamp)}</td>
-          <td>${m.description || 'Transaction'}</td>
-          <td>${formatMoney(m.amount)}</td>
-        </tr>`).join('')}
-      </table>` : '<p style="color:var(--muted);padding:1rem">No recent money transactions found.</p>'}
+      ${money.length
+        ? `<table><tr><th>Time</th><th>Description</th><th>Amount</th></tr>${moneyRows}</table>`
+        : '<p style="color:var(--muted);padding:1rem">No recent money transactions found.</p>'}
     </div>
 
     <div id="tab-items" class="tab-content">
-      ${items.length ? `<table>
-        <tr><th>Time</th><th>Action</th><th>Item</th></tr>
-        ${items.map(i => `<tr>
-          <td>${formatDate(i.timestamp)}</td>
-          <td>${i.action || 'Unknown'}</td>
-          <td>${i.item_name || i.id || 'Unknown'}</td>
-        </tr>`).join('')}
-      </table>` : '<p style="color:var(--muted);padding:1rem">No recent item activity found.</p>'}
+      ${items.length
+        ? `<table><tr><th>Time</th><th>Action</th><th>Item</th></tr>${itemRows}</table>`
+        : '<p style="color:var(--muted);padding:1rem">No recent item activity found.</p>'}
     </div>
   `;
-  $('#inspContent').innerHTML = html;
 }
 
 function switchTab(e, id) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   e.target.classList.add('active');
-  document.getElementById(id).classList.add('active');
+  const content = document.getElementById(id);
+  if (content) content.classList.add('active');
 }
 
-function closeInspector() { hide($('#inspector')); }
+function closeInspector() {
+  hide($('#inspector'));
+  hide($('#modalOverlay'));
+}
 
+// Initialize
 checkSession();
 </script>
 </body>

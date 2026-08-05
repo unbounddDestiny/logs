@@ -3,336 +3,225 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torn API Log Checker</title>
+    <title>Torn Log Checker</title>
     <style>
-        :root {
-            --bg-color: #1a1a1a;
-            --text-color: #e0e0e0;
-            --accent-color: #4CAF50;
-            --error-color: #f44336;
-            --card-bg: #2d2d2d;
-            --border-color: #404040;
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background: #121212; 
+            color: #e0e0e0; 
+            padding: 20px; 
+            max-width: 800px; 
+            margin: 0 auto; 
         }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 20px;
-            line-height: 1.6;
+        .card { 
+            background: #1e1e1e; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            border: 1px solid #333;
         }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
+        input { 
+            padding: 10px; 
+            width: 250px; 
+            background: #2d2d2d; 
+            border: 1px solid #444; 
+            color: white; 
+            border-radius: 4px; 
+            font-size: 14px;
         }
-
-        h1, h2 {
-            text-align: center;
-            color: var(--accent-color);
+        button { 
+            padding: 10px 15px; 
+            background: #4CAF50; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 14px;
+            margin-left: 5px;
         }
-
-        /* Card Styling */
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            border: 1px solid var(--border-color);
-        }
-
-        /* Form Elements */
-        .input-group {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 15px;
-        }
-
-        input[type="text"] {
-            padding: 10px;
-            border-radius: 4px;
-            border: 1px solid var(--border-color);
-            background-color: #333;
-            color: white;
-            width: 300px;
-            font-size: 16px;
-        }
-
-        button {
-            padding: 10px 20px;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-            transition: opacity 0.2s;
-        }
-
-        button:hover {
-            opacity: 0.9;
-        }
-
-        .btn-submit { background-color: var(--accent-color); color: white; }
-        .btn-logout { background-color: var(--error-color); color: white; }
-        .btn-inspect { background-color: #2196F3; color: white; padding: 5px 10px; font-size: 12px; }
-
-        /* Table Styling */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        th {
-            background-color: #333;
-            color: var(--accent-color);
-        }
-
-        tr:hover {
-            background-color: #383838;
-        }
-
-        /* Utility */
-        .hidden { display: none; }
-        .status-msg {
-            text-align: center;
-            margin-top: 10px;
-            font-weight: bold;
-        }
-        .success { color: var(--accent-color); }
-        .error { color: var(--error-color); }
+        button:hover { opacity: 0.9; }
+        button.logout { background: #f44336; }
         
-        /* Modal for Logs */
-        .modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            display: flex; justify-content: center; align-items: center;
-            z-index: 1000;
-        }
-        .modal-content {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 8px;
-            width: 80%;
-            max-height: 80vh;
-            overflow-y: auto;
-            position: relative;
-        }
-        .close-modal {
-            position: absolute; top: 10px; right: 15px;
-            font-size: 24px; cursor: pointer; color: var(--error-color);
-        }
-        .log-entry {
-            border-bottom: 1px solid #444;
-            padding: 8px 0;
-            font-family: monospace;
+        .error { color: #f44336; }
+        .success { color: #4CAF50; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #4CAF50; font-weight: 600; }
+        
+        pre { 
+            background: #0d0d0d; 
+            padding: 15px; 
+            border-radius: 4px; 
+            overflow-x: auto; 
+            white-space: pre-wrap; 
+            word-wrap: break-word; 
             font-size: 13px;
+            color: #a0a0a0;
+            border: 1px solid #333;
         }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Torn API Key Portal</h1>
+    <h1>Torn Log Checker</h1>
 
-    <!-- Key Submission Section -->
+    <!-- Login Section -->
     <div class="card">
-        <p style="text-align: center; margin: 0;">Enter your Limited Access API Key. Saves automatically to session storage.</p>
-        <div class="input-group">
-            <input type="text" id="apiKeyInput" placeholder="Enter 16-character Key" maxlength="16">
-            <button class="btn-submit" onclick="submitKey()">Submit Key</button>
-            <button class="btn-logout hidden" id="logoutBtn" onclick="logout()">Logout</button>
-        </div>
-        <div id="statusMsg" class="status-msg"></div>
+        <p style="margin-top: 0;">Enter your Limited Access API Key (saves to browser session):</p>
+        <input type="text" id="apiKeyInput" placeholder="16-character key" maxlength="16">
+        <button onclick="submitKey()">Submit</button>
+        <button onclick="logout()" id="logoutBtn" class="logout hidden">Logout</button>
+        <p id="statusMsg" style="margin-bottom: 0; margin-top: 15px;"></p>
+    </div>
+
+    <!-- Auto-displayed Logs for Logged-in User -->
+    <div id="myLogsSection" class="card hidden">
+        <h2 style="margin-top: 0;">My Recent Logs (Last 24h)</h2>
+        <pre id="myLogsContent">Loading logs...</pre>
     </div>
 
     <!-- Roster Section -->
     <div class="card">
-        <h2>Registered Players Roster</h2>
+        <h2 style="margin-top: 0;">Registered Players Roster</h2>
         <table id="rosterTable">
             <thead>
                 <tr>
                     <th>Username</th>
                     <th>Level</th>
                     <th>User ID</th>
-                    <th>Admin Actions</th>
                 </tr>
             </thead>
             <tbody id="rosterBody">
-                <!-- Rows will be injected here -->
+                <tr><td colspan="3">Loading roster...</td></tr>
             </tbody>
         </table>
     </div>
-</div>
 
-<!-- Log Modal -->
-<div id="logModal" class="modal hidden">
-    <div class="modal-content">
-        <span class="close-modal" onclick="closeModal()">&times;</span>
-        <h3 id="modalTitle">Player Logs</h3>
-        <div id="modalLogs"></div>
-    </div>
-</div>
+    <script>
+        // ⚠️ REPLACE THIS WITH YOUR ACTUAL ESM.TOWN DEPLOYMENT URL
+        const API_BASE = "https://your-esm-town-function-url.esm.run"; 
 
-<script>
-    // Use the actual deployment URL of your ESM Town function
-    const API_BASE = "https://your-esm-town-function-url.esm.run"; 
-
-    const apiKeyInput = document.getElementById('apiKeyInput');
-    const statusMsg = document.getElementById('statusMsg');
-    const rosterBody = document.getElementById('rosterBody');
-    const logoutBtn = document.getElementById('logoutBtn');
-
-    // Load key from session storage on load
-    window.onload = () => {
-        const savedKey = sessionStorage.getItem('torn_api_key');
-        if (savedKey) {
-            apiKeyInput.value = savedKey;
-            logoutBtn.classList.remove('hidden');
-            fetchRoster();
-        }
-    };
-
-    async function submitKey() {
-        const key = apiKeyInput.value.trim();
-        setStatus('', '');
-
-        if (!key || key.length !== 16) {
-            setStatus('Please enter a valid 16-character key.', 'error');
-            return;
-        }
-
-        try {
-            const res = await fetch(`${API_BASE}/api/submit-key`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ apiKey: key })
-            });
-
-            const data = await res.json();
-
-            if (data.success) {
-                sessionStorage.setItem('torn_api_key', key);
-                logoutBtn.classList.remove('hidden');
-                setStatus(`Successfully registered as ${data.username} (Level ${data.level})`, 'success');
-                fetchRoster(); // Refresh table immediately
+        window.onload = () => {
+            const savedKey = sessionStorage.getItem('torn_api_key');
+            if (savedKey) {
+                document.getElementById('apiKeyInput').value = savedKey;
+                document.getElementById('logoutBtn').classList.remove('hidden');
+                submitKey(true); // Silent auto-login on page load
             } else {
-                setStatus(data.error || 'Failed to submit key.', 'error');
+                fetchRoster(); // Still show roster even if not logged in
             }
-        } catch (err) {
-            setStatus('Network error. Please check your connection.', 'error');
-            console.error(err);
-        }
-    }
+        };
 
-    async function fetchRoster() {
-        try {
-            const res = await fetch(`${API_BASE}/api/roster`);
-            const roster = await res.json();
+        async function submitKey(silent = false) {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            const statusMsg = document.getElementById('statusMsg');
             
-            rosterBody.innerHTML = ''; // Clear current list
-            
-            if (!Array.isArray(roster) || roster.length === 0) {
-                rosterBody.innerHTML = '<tr><td colspan="4" style="text-align:center">No players registered yet.</td></tr>';
+            if (!key || key.length !== 16) {
+                if (!silent) statusMsg.innerHTML = '<span class="error">Please enter a valid 16-character key.</span>';
                 return;
             }
 
-            const fragment = document.createDocumentFragment();
+            if (!silent) statusMsg.textContent = 'Verifying key...';
 
-            roster.forEach(player => {
-                // FIX: Ensure level is never undefined
-                const level = player.level ?? 0; 
-                const username = player.username || 'Unknown';
-                const userId = player.userId || 'N/A';
+            try {
+                const res = await fetch(`${API_BASE}/api/submit-key`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey: key })
+                });
+                const data = await res.json();
 
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${username}</td>
-                    <td>${level}</td>
-                    <td>${userId}</td>
-                    <td><button class="btn-inspect" onclick="inspectPlayer(${userId})">Inspect Logs</button></td>
-                `;
-                fragment.appendChild(row);
-            });
-
-            rosterBody.appendChild(fragment);
-        } catch (err) {
-            console.error("Failed to fetch roster:", err);
-        }
-    }
-
-    async function inspectPlayer(userId) {
-        const modal = document.getElementById('logModal');
-        const modalLogs = document.getElementById('modalLogs');
-        const modalTitle = document.getElementById('modalTitle');
-        
-        modal.classList.remove('hidden');
-        modalTitle.textContent = `Loading logs for User ID: ${userId}...`;
-        modalLogs.innerHTML = '<p>Fetching data from Torn API...</p>';
-
-        try {
-            const res = await fetch(`${API_BASE}/api/inspect`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ targetUserId: userId })
-            });
-
-            const data = await res.json();
-
-            if (data.success && data.logs) {
-                modalTitle.textContent = `Logs for User ID: ${userId}`;
-                
-                if (Object.keys(data.logs).length === 0) {
-                    modalLogs.innerHTML = '<p>No logs found in the last 24 hours.</p>';
-                } else {
-                    let html = '';
-                    // The backend now returns a sorted array, but we handle both formats just in case
-                    const logArray = Array.isArray(data.logs) ? data.logs : Object.entries(data.logs);
+                if (data.success) {
+                    sessionStorage.setItem('torn_api_key', key);
+                    document.getElementById('logoutBtn').classList.remove('hidden');
+                    if (!silent) {
+                        statusMsg.innerHTML = `<span class="success">Successfully registered as <strong>${data.username}</strong> (Level ${data.level})</span>`;
+                    }
                     
-                    logArray.forEach(log => {
-                        // Handle array format from our optimized backend
-                        const details = Array.isArray(log) ? log[1] : log;
-                        const timestamp = Array.isArray(log) ? new Date(log[0] * 1000).toLocaleString() : 'N/A';
-                        
-                        // Extracting common log fields
-                        const action = details.log || details.action || JSON.stringify(details);
-                        html += `<div class="log-entry"><strong>[${timestamp}]</strong> ${action}</div>`;
-                    });
-                    modalLogs.innerHTML = html;
+                    fetchRoster();
+                    fetchMyLogs(data.userId); // Automatically fetch and show logs for this player
+                } else {
+                    if (!silent) statusMsg.innerHTML = `<span class="error">${data.error}</span>`;
                 }
-            } else {
-                modalLogs.innerHTML = `<p class="error">${data.error || 'Failed to load logs.'}</p>`;
+            } catch (err) {
+                if (!silent) statusMsg.innerHTML = '<span class="error">Network error. Check console.</span>';
+                console.error(err);
             }
-        } catch (err) {
-            modalLogs.innerHTML = '<p class="error">Network error while fetching logs.</p>';
         }
-    }
 
-    function closeModal() {
-        document.getElementById('logModal').classList.add('hidden');
-    }
+        async function fetchMyLogs(userId) {
+            const logsSection = document.getElementById('myLogsSection');
+            const logsContent = document.getElementById('myLogsContent');
+            logsSection.classList.remove('hidden');
+            logsContent.textContent = 'Fetching logs from Torn API...';
 
-    function logout() {
-        sessionStorage.removeItem('torn_api_key');
-        apiKeyInput.value = '';
-        logoutBtn.classList.add('hidden');
-        setStatus('Logged out successfully.', 'success');
-        setTimeout(() => setStatus('', ''), 2000);
-    }
+            try {
+                const res = await fetch(`${API_BASE}/api/inspect`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ targetUserId: userId })
+                });
+                const data = await res.json();
 
-    function setStatus(msg, type) {
-        statusMsg.textContent = msg;
-        statusMsg.className = 'status-msg ' + type;
-    }
-</script>
+                if (data.success && data.logs) {
+                    if (data.logs.length === 0) {
+                        logsContent.textContent = 'No logs found in the last 24 hours.';
+                    } else {
+                        // Format the sorted log array into clean, readable text
+                        const formatted = data.logs.map(log => {
+                            const time = new Date(log.timestamp * 1000).toLocaleString();
+                            const details = log.log || log.action || log.message || JSON.stringify(log);
+                            return `[${time}] ${details}`;
+                        }).join('\n\n');
+                        logsContent.textContent = formatted;
+                    }
+                } else {
+                    logsContent.innerHTML = `<span class="error">${data.error || 'Failed to load logs.'}</span>`;
+                }
+            } catch (err) {
+                logsContent.innerHTML = '<span class="error">Failed to fetch logs. Check console.</span>';
+                console.error(err);
+            }
+        }
 
+        async function fetchRoster() {
+            try {
+                const res = await fetch(`${API_BASE}/api/roster`);
+                const roster = await res.json();
+                const tbody = document.getElementById('rosterBody');
+                tbody.innerHTML = '';
+
+                if (!roster || roster.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3">No players registered yet.</td></tr>';
+                    return;
+                }
+
+                roster.forEach(p => {
+                    // Safe fallbacks to prevent "undefined" from ever showing
+                    const username = p.username || 'Unknown';
+                    const level = p.level ?? 0;
+                    const userId = p.userId || 'N/A';
+                    
+                    const row = `<tr><td>${username}</td><td>${level}</td><td>${userId}</td></tr>`;
+                    tbody.innerHTML += row;
+                });
+            } catch (err) {
+                console.error('Failed to fetch roster', err);
+                document.getElementById('rosterBody').innerHTML = '<tr><td colspan="3" class="error">Failed to load roster.</td></tr>';
+            }
+        }
+
+        function logout() {
+            sessionStorage.removeItem('torn_api_key');
+            document.getElementById('apiKeyInput').value = '';
+            document.getElementById('logoutBtn').classList.add('hidden');
+            document.getElementById('myLogsSection').classList.add('hidden');
+            document.getElementById('statusMsg').textContent = 'Logged out successfully.';
+            document.getElementById('rosterBody').innerHTML = '<tr><td colspan="3">Loading roster...</td></tr>';
+            fetchRoster();
+        }
+    </script>
 </body>
 </html>

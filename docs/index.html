@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torn API Key Checker</title>
+    <title>Torn API Key Log Checker</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -28,7 +28,7 @@
 
         .container {
             width: 100%;
-            max-width: 800px;
+            max-width: 900px;
         }
 
         .card {
@@ -45,16 +45,16 @@
             color: #ffffff;
         }
 
-        .subtitle {
-            color: var(--text-muted);
-            font-size: 0.9em;
-            margin-bottom: 20px;
-        }
-
         .input-group {
             display: flex;
+            flex-direction: column;
             gap: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
         }
 
         input[type="text"] {
@@ -111,111 +111,117 @@
             border-radius: 4px;
             font-size: 0.85em;
             font-weight: bold;
-            display: inline-block;
         }
 
-        .badge-success {
-            background-color: var(--success-color);
-            color: #ffffff;
-        }
-
-        .badge-error {
-            background-color: var(--error-color);
-            color: #ffffff;
-        }
-
-        .key-text {
-            font-family: monospace;
-        }
+        .badge-success { background-color: var(--success-color); color: #ffffff; }
+        .badge-error { background-color: var(--error-color); color: #ffffff; }
+        .key-text { font-family: monospace; }
+        .status-msg { margin-top: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="card">
-        <h1>Torn Key Checker</h1>
-        <p class="subtitle">Validates submitted API keys. Only accepts <strong>Limited Access</strong> keys.</p>
-        
+        <h1>Torn Key Checker & Roster</h1>
+        <p style="color: var(--text-muted);">Verifies key authorization via backend and manages registered limited keys.</p>
+
         <div class="input-group">
-            <input type="text" id="apiKeyInput" placeholder="Enter 16-character Torn API key..." maxlength="16">
-            <button onclick="checkKey()">Validate Key</button>
+            <input type="text" id="adminIdInput" placeholder="Your Admin Torn User ID (Authorization required)...">
+            <div class="input-row">
+                <input type="text" id="apiKeyInput" placeholder="Enter 16-character Torn API key..." maxlength="16">
+                <button onclick="checkAndRegisterKey()">Verify & Log Key</button>
+            </div>
         </div>
+        <div id="statusMessage" class="status-msg"></div>
     </div>
 
     <div class="card">
-        <h2>Key Submission Log</h2>
+        <h2>Registered User Roster</h2>
         <table>
             <thead>
                 <tr>
-                    <th>Timestamp</th>
-                    <th>API Key</th>
-                    <th>Status</th>
+                    <th>User ID</th>
+                    <th>Masked Key</th>
                     <th>Access Level</th>
-                    <th>Details / User ID</th>
+                    <th>Time Added</th>
                 </tr>
             </thead>
-            <tbody id="logTableBody">
+            <tbody id="rosterTableBody">
                 </tbody>
         </table>
     </div>
 </div>
 
 <script>
-    async function checkKey() {
-        const inputField = document.getElementById('apiKeyInput');
-        const apiKey = inputField.value.trim();
+    // Replace with your Val.town HTTP Val URL
+    const VAL_TOWN_URL = "https://unboundddestiny--1cf34a4c90c111f182311607ee4eb77e.web.val.run";
 
-        if (!apiKey) {
-            alert('Please enter an API key.');
+    async function loadRoster() {
+        try {
+            const res = await fetch(`${VAL_TOWN_URL}/api/roster`);
+            const roster = await res.json();
+            const tbody = document.getElementById('rosterTableBody');
+            tbody.innerHTML = '';
+
+            roster.forEach(user => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${user.userId}</strong></td>
+                    <td class="key-text">${user.maskedKey}</td>
+                    <td><span class="badge badge-success">${user.accessType}</span></td>
+                    <td>${user.addedAt}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        } catch (e) {
+            console.error("Failed to load roster:", e);
+        }
+    }
+
+    async function checkAndRegisterKey() {
+        const adminId = document.getElementById('adminIdInput').value.trim();
+        const apiKey = document.getElementById('apiKeyInput').value.trim();
+        const statusDiv = document.getElementById('statusMessage');
+
+        if (!adminId || !apiKey) {
+            statusDiv.style.color = "yellow";
+            statusDiv.textContent = "Please provide both your Admin User ID and the API Key to test.";
             return;
         }
 
+        statusDiv.style.color = "white";
+        statusDiv.textContent = "Validating...";
+
         try {
-            const response = await fetch(`https://api.torn.com/key/?selections=info&key=${apiKey}`);
+            const response = await fetch(`${VAL_TOWN_URL}/api/check-key`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Admin-ID": adminId
+                },
+                body: JSON.stringify({ apiKey })
+            });
+
             const data = await response.json();
 
-            if (data.error) {
-                addLogEntry(apiKey, false, 'API Error', `Error ${data.error.code}: ${data.error.error}`);
+            if (response.ok && data.success) {
+                statusDiv.style.color = "#4caf50";
+                statusDiv.textContent = `✅ Accepted! User ID ${data.userId} validated as Limited Access.`;
+                document.getElementById('apiKeyInput').value = '';
+                loadRoster();
             } else {
-                const accessLevel = data.access_level;
-                const accessType = data.access_type || 'Unknown';
-                const userId = data.user_id || 'N/A';
-
-                // Strict validation rule: Level 3 is "Limited Access"
-                if (accessLevel === 3 || accessType === 'Limited Access') {
-                    addLogEntry(apiKey, true, accessType, `User ID: ${userId}`);
-                } else {
-                    addLogEntry(apiKey, false, accessType, `Rejected: Expected 'Limited Access', got '${accessType}' (Level ${accessLevel})`);
-                }
+                statusDiv.style.color = "#f44336";
+                statusDiv.textContent = `❌ ${data.error}`;
             }
         } catch (err) {
-            addLogEntry(apiKey, false, 'Network Error', 'Failed to reach Torn API');
+            statusDiv.style.color = "#f44336";
+            statusDiv.textContent = "Error connecting to Val.town backend.";
         }
-
-        inputField.value = '';
     }
 
-    function addLogEntry(key, isAccepted, accessType, details) {
-        const tbody = document.getElementById('logTableBody');
-        const row = document.createElement('tr');
-        
-        const timestamp = new Date().toLocaleTimeString();
-        const maskedKey = key.substring(0, 4) + '...' + key.substring(key.length - 4);
-
-        const statusBadge = isAccepted 
-            ? '<span class="badge badge-success">ACCEPTED</span>' 
-            : '<span class="badge badge-error">REJECTED</span>';
-
-        row.innerHTML = `
-            <td>${timestamp}</td>
-            <td class="key-text" title="${key}">${maskedKey}</td>
-            <td>${statusBadge}</td>
-            <td>${accessType}</td>
-            <td>${details}</td>
-        `;
-
-        tbody.insertBefore(row, tbody.firstChild);
-    }
+    // Initial load
+    loadRoster();
 </script>
 
 </body>

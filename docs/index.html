@@ -3,19 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Torn Admin Registry</title>
+  <title>Torn City Registry</title>
   <style>
     :root { --bg: #0f1115; --card: #181b21; --border: #2d3139; --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --success: #3fb950; --danger: #f85149; --gold: #d29922; }
     body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 2rem; line-height: 1.5; }
     .container { max-width: 1200px; margin: 0 auto; }
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
-    .badge { background: var(--accent); color: #000; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+    .badge { padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+    .badge-admin { background: var(--gold); color: #000; }
+    .badge-user { background: #333; color: var(--muted); }
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; font-size: 0.9rem; }
     .btn-primary { background: var(--accent); color: #000; }
-    .btn-danger { background: var(--danger); color: #fff; }
     .btn-secondary { background: #333; color: #fff; }
-    .btn:hover { opacity: 0.8; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
     input { width: 100%; padding: 0.8rem; border: 1px solid var(--border); border-radius: 6px; background: #000; color: #fff; font-size: 1rem; margin-bottom: 1rem; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
     .agent-card { background: #22262e; border: 1px solid #333; padding: 1rem; border-radius: 8px; display: flex; flex-direction: column; justify-content: space-between; }
@@ -36,29 +37,30 @@
     .hidden { display: none !important; }
     .loader { border: 3px solid #333; border-top: 3px solid var(--accent); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 2rem auto; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .alert { padding: 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem; }
+    .alert-info { background: rgba(88,166,255,0.1); border: 1px solid var(--accent); color: var(--accent); }
   </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <h1>🏙️ Torn City Admin Registry</h1>
-    <div id="userInfo">
-      <button class="btn btn-secondary hidden" id="logoutBtn">Logout</button>
-    </div>
+    <h1>🏙️ Torn City Registry</h1>
+    <div id="userInfo"></div>
   </div>
 
   <!-- LOGIN VIEW -->
   <div id="loginView" class="card">
-    <h2>🔐 Admin Login</h2>
-    <p style="color: var(--muted)">Enter your limited API key to access the dashboard. Only IDs in the whitelist can log in.</p>
+    <h2>🔐 Login / Register</h2>
+    <p style="color: var(--muted)">Anyone can log in and register their key. Only authorized inspectors can view logs.</p>
     <input type="password" id="loginKey" placeholder="Paste your Limited API Key...">
-    <button class="btn btn-primary" id="loginBtn">Login</button>
+    <button class="btn btn-primary" id="loginBtn">Login & Register</button>
     <div id="loginMsg" style="margin-top: 1rem; color: var(--danger);"></div>
   </div>
 
   <!-- DASHBOARD VIEW -->
   <div id="dashView" class="hidden">
-    <h2>Registered Agents</h2>
+    <div id="permissionAlert" class="alert alert-info hidden"></div>
+    <h2>Registered Players</h2>
     <div id="agentGrid" class="grid"></div>
     
     <!-- INSPECTOR MODAL -->
@@ -67,17 +69,16 @@
         <h2 id="inspTitle">Inspector</h2>
         <button class="btn btn-secondary" onclick="closeInspector()">Close</button>
       </div>
-      
       <div id="inspContent"></div>
     </div>
   </div>
 </div>
 
 <script>
-const API = "https://unboundddestiny--1cf34a4c90c111f182311607ee4eb77e.web.val.run";
+const API = "https://unboundddestiny--1cf34a4c90c111f182311607ee4eb77e.web.val.run"; // ⬅️ UPDATE THIS
 let sessionKey = localStorage.getItem('torn_admin_key');
+let currentUser = null;
 
-// --- UI HELPERS ---
 const $ = (s) => document.querySelector(s);
 const show = (el) => el.classList.remove('hidden');
 const hide = (el) => el.classList.add('hidden');
@@ -90,8 +91,7 @@ function formatMoney(amount) {
 
 function formatDate(timestamp) {
   if (!timestamp) return 'N/A';
-  const d = new Date(timestamp * 1000);
-  return d.toLocaleString();
+  return new Date(timestamp * 1000).toLocaleString();
 }
 
 function getStatusHtml(status) {
@@ -106,7 +106,6 @@ async function checkSession() {
   if (!sessionKey) {
     show($('#loginView'));
     hide($('#dashView'));
-    hide($('#logoutBtn'));
     return;
   }
   try {
@@ -114,16 +113,36 @@ async function checkSession() {
     if (res.ok) {
       const data = await res.json();
       if (data.valid) {
-        $('#userInfo').innerHTML = `<span style="margin-right:1rem">Logged in as <strong>${data.name}</strong> [${data.id}]</span>` + $('#userInfo').innerHTML;
-        show($('#logoutBtn'));
+        currentUser = data;
+        const badge = data.can_inspect 
+          ? '<span class="badge badge-admin">INSPECTOR</span>' 
+          : '<span class="badge badge-user">MEMBER</span>';
+        
+        $('#userInfo').innerHTML = `
+          <span style="margin-right:1rem">${badge} <strong>${data.name}</strong> [${data.id}]</span>
+          <button class="btn btn-secondary" id="logoutBtn">Logout</button>
+        `;
+        $('#logoutBtn').onclick = () => {
+          localStorage.removeItem('torn_admin_key');
+          location.reload();
+        };
+        
         hide($('#loginView'));
         show($('#dashView'));
+        
+        // Show permission alert for non-inspectors
+        if (!data.can_inspect) {
+          $('#permissionAlert').textContent = "ℹ️ You are logged in as a member. You can register your key but cannot inspect other players' logs.";
+          show($('#permissionAlert'));
+        } else {
+          hide($('#permissionAlert'));
+        }
+        
         loadAgents();
         return;
       }
     }
   } catch (e) {}
-  // Invalid session
   localStorage.removeItem('torn_admin_key');
   sessionKey = null;
   checkSession();
@@ -133,23 +152,34 @@ $('#loginBtn').onclick = async () => {
   const key = $('#loginKey').value.trim();
   $('#loginMsg').innerText = "Verifying...";
   try {
-    const res = await fetch(`${API}/whoami`, { headers: { 'X-Torn-Key': key } });
-    const data = await res.json();
-    if (res.ok && data.valid) {
-      sessionKey = key;
-      localStorage.setItem('torn_admin_key', key);
-      checkSession();
-    } else {
-      $('#loginMsg').innerText = `❌ Error: ${data.error || 'Invalid Key / Not Admin'}`;
+    // First verify the key
+    const whoamiRes = await fetch(`${API}/whoami`, { headers: { 'X-Torn-Key': key } });
+    const whoamiData = await whoamiRes.json();
+    
+    if (!whoamiRes.ok || !whoamiData.valid) {
+      $('#loginMsg').innerText = `❌ ${whoamiData.error || 'Invalid API Key'}`;
+      return;
     }
+
+    // Then register/update the key
+    const regRes = await fetch(`${API}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Torn-Key': key },
+      body: JSON.stringify({ api_key: key })
+    });
+    const regData = await regRes.json();
+    
+    if (!regRes.ok) {
+      $('#loginMsg').innerText = `❌ Registration failed: ${regData.error}`;
+      return;
+    }
+
+    sessionKey = key;
+    localStorage.setItem('torn_admin_key', key);
+    checkSession();
   } catch (e) {
     $('#loginMsg').innerText = "❌ Connection Error";
   }
-};
-
-$('#logoutBtn').onclick = () => {
-  localStorage.removeItem('torn_admin_key');
-  location.reload();
 };
 
 // --- DASHBOARD ---
@@ -159,104 +189,111 @@ async function loadAgents() {
   const grid = $('#agentGrid');
   grid.innerHTML = '';
   
-  if (!admins.length) {
-    grid.innerHTML = '<p style="color:var(--muted)">No agents registered.</p>';
+  if (!admins || !admins.length) {
+    grid.innerHTML = '<p style="color:var(--muted)">No players registered yet.</p>';
     return;
   }
 
   admins.forEach(a => {
     const card = document.createElement('div');
     card.className = 'agent-card';
+    
+    // Only show Inspect button if user has permission
+    const inspectBtn = currentUser?.can_inspect
+      ? `<button class="btn btn-primary" style="margin-top:1rem" onclick="inspectAgent(${a.torn_id}, '${a.player_name.replace(/'/g, "\\'")}')">Inspect Logs</button>`
+      : `<button class="btn btn-secondary" style="margin-top:1rem" disabled title="Inspector access required">Inspect Locked</button>`;
+    
     card.innerHTML = `
       <div>
-        <div class="agent-name">${a.player_name}</div>
+        <div class="agent-name">${a.player_name || 'Unknown'}</div>
         <div class="agent-id">ID: ${a.torn_id}</div>
-        <div style="font-size:0.8rem; color:var(--muted)">Reg: ${new Date(a.registered_at).toLocaleDateString()}</div>
+        <div style="font-size:0.8rem; color:var(--muted)">Registered: ${new Date(a.registered_at).toLocaleDateString()}</div>
       </div>
-      <button class="btn btn-primary" style="margin-top:1rem" onclick="inspectAgent(${a.torn_id}, '${a.player_name}')">Inspect Logs</button>
+      ${inspectBtn}
     `;
     grid.appendChild(card);
   });
 }
 
-// --- INSPECTOR (The "One Log" View) ---
+// --- INSPECTOR ---
 async function inspectAgent(id, name) {
+  if (!currentUser?.can_inspect) return;
+  
   show($('#inspector'));
   $('#inspTitle').innerText = `Inspecting: ${name} [${id}]`;
-  $('#inspContent').innerHTML = '<div class="loader"></div><p style="text-align:center">Fetching combined data (Profile, Attacks, Money, Items)...</p>';
+  $('#inspContent').innerHTML = '<div class="loader"></div><p style="text-align:center">Fetching combined dossier...</p>';
   
   try {
     const res = await fetch(`${API}/inspect?torn_id=${id}`, { headers: { 'X-Torn-Key': sessionKey } });
-    const { data } = await res.json();
-    renderDossier(data);
+    const json = await res.json();
+    
+    // ✅ FIX: Safe data extraction to prevent "undefined is not an object"
+    if (!res.ok || !json.data) {
+      $('#inspContent').innerHTML = `<p style="color:var(--danger)">❌ ${json.error || 'Failed to load data'}</p>`;
+      return;
+    }
+    
+    renderDossier(json.data);
   } catch (e) {
-    $('#inspContent').innerHTML = `<p style="color:var(--danger)">Error fetching data: ${e.message}</p>`;
+    $('#inspContent').innerHTML = `<p style="color:var(--danger)">❌ Network Error: ${e.message}</p>`;
   }
 }
 
 function renderDossier(data) {
-  const profile = data.profile || {};
-  const attacks = (data.attacks || []).slice(0, 10); // Last 10
-  const money = (data.money || []).slice(0, 10);
-  const items = (data.items || []).slice(0, 10);
+  // ✅ FIX: Defensive defaults for every field
+  const profile = data?.profile || {};
+  const attacks = Array.isArray(data?.attacks) ? data.attacks.slice(0, 10) : [];
+  const money = Array.isArray(data?.money) ? data.money.slice(0, 10) : [];
+  const items = Array.isArray(data?.items) ? data.items.slice(0, 10) : [];
 
   const html = `
-    <!-- PROFILE SUMMARY -->
     <div class="card" style="background:#111">
       <h3>${profile.name || 'Unknown'} (Level ${profile.level || '?'})</h3>
-      <div style="display:flex; gap:2rem; margin-top:0.5rem;">
+      <div style="display:flex; gap:2rem; margin-top:0.5rem; flex-wrap:wrap;">
         <div><strong>Status:</strong> ${getStatusHtml(profile.status)}</div>
         <div><strong>Faction:</strong> ${profile.faction?.position || 'None'}</div>
         <div><strong>Last Action:</strong> ${profile.last_action?.relative || 'N/A'}</div>
       </div>
     </div>
 
-    <!-- TABS -->
     <div class="tabs">
-      <div class="tab active" onclick="switchTab(event, 'tab-attacks')">Recent Attacks (${attacks.length})</div>
-      <div class="tab" onclick="switchTab(event, 'tab-money')">Money Log (${money.length})</div>
-      <div class="tab" onclick="switchTab(event, 'tab-items')">Items Log (${items.length})</div>
+      <div class="tab active" onclick="switchTab(event, 'tab-attacks')">Attacks (${attacks.length})</div>
+      <div class="tab" onclick="switchTab(event, 'tab-money')">Money (${money.length})</div>
+      <div class="tab" onclick="switchTab(event, 'tab-items')">Items (${items.length})</div>
     </div>
 
-    <!-- CONTENT -->
     <div id="tab-attacks" class="tab-content active">
-      <table>
+      ${attacks.length ? `<table>
         <tr><th>Time</th><th>Target</th><th>Result</th><th>Respect</th></tr>
-        ${attacks.map(a => `
-          <tr>
-            <td>${formatDate(a.timestamp_ended)}</td>
-            <td>${a.defender_name}</td>
-            <td>${a.attacker_name === profile.name ? '⚔️ Attacked' : '🛡️ Defended'} (${a.result})</td>
-            <td>${a.respect_gain}</td>
-          </tr>
-        `).join('')}
-      </table>
+        ${attacks.map(a => `<tr>
+          <td>${formatDate(a.timestamp_ended)}</td>
+          <td>${a.defender_name || 'Unknown'}</td>
+          <td>${a.attacker_name === profile.name ? '⚔️ Attacked' : '🛡️ Defended'} (${a.result || '?'})</td>
+          <td>${a.respect_gain ?? 'N/A'}</td>
+        </tr>`).join('')}
+      </table>` : '<p style="color:var(--muted);padding:1rem">No recent attacks found.</p>'}
     </div>
 
     <div id="tab-money" class="tab-content">
-      <table>
+      ${money.length ? `<table>
         <tr><th>Time</th><th>Description</th><th>Amount</th></tr>
-        ${money.map(m => `
-          <tr>
-            <td>${formatDate(m.timestamp)}</td>
-            <td>${m.description}</td>
-            <td>${formatMoney(m.amount)}</td>
-          </tr>
-        `).join('')}
-      </table>
+        ${money.map(m => `<tr>
+          <td>${formatDate(m.timestamp)}</td>
+          <td>${m.description || 'Transaction'}</td>
+          <td>${formatMoney(m.amount)}</td>
+        </tr>`).join('')}
+      </table>` : '<p style="color:var(--muted);padding:1rem">No recent money transactions found.</p>'}
     </div>
 
     <div id="tab-items" class="tab-content">
-      <table>
+      ${items.length ? `<table>
         <tr><th>Time</th><th>Action</th><th>Item</th></tr>
-        ${items.map(i => `
-          <tr>
-            <td>${formatDate(i.timestamp)}</td>
-            <td>${i.action}</td>
-            <td>${i.item_name || i.id}</td>
-          </tr>
-        `).join('')}
-      </table>
+        ${items.map(i => `<tr>
+          <td>${formatDate(i.timestamp)}</td>
+          <td>${i.action || 'Unknown'}</td>
+          <td>${i.item_name || i.id || 'Unknown'}</td>
+        </tr>`).join('')}
+      </table>` : '<p style="color:var(--muted);padding:1rem">No recent item activity found.</p>'}
     </div>
   `;
   $('#inspContent').innerHTML = html;
@@ -269,11 +306,8 @@ function switchTab(e, id) {
   document.getElementById(id).classList.add('active');
 }
 
-function closeInspector() {
-  hide($('#inspector'));
-}
+function closeInspector() { hide($('#inspector')); }
 
-// Init
 checkSession();
 </script>
 </body>

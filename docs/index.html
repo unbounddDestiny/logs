@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torn Log Checker</title>
+    <title>Torn API Log Checker</title>
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
             background: #121212; 
             color: #e0e0e0; 
             padding: 20px; 
-            max-width: 800px; 
+            max-width: 900px; 
             margin: 0 auto; 
         }
         .card { 
@@ -20,6 +20,8 @@
             margin-bottom: 20px; 
             border: 1px solid #333;
         }
+        h1, h2 { color: #4CAF50; margin-top: 0; }
+        
         input { 
             padding: 10px; 
             width: 250px; 
@@ -28,6 +30,7 @@
             color: white; 
             border-radius: 4px; 
             font-size: 14px;
+            margin-right: 5px;
         }
         button { 
             padding: 10px 15px; 
@@ -37,10 +40,10 @@
             border-radius: 4px; 
             cursor: pointer; 
             font-size: 14px;
-            margin-left: 5px;
         }
         button:hover { opacity: 0.9; }
-        button.logout { background: #f44336; }
+        button.logout { background: #f44336; margin-left: 5px; }
+        button.inspect { background: #2196F3; padding: 5px 10px; font-size: 12px; }
         
         .error { color: #f44336; }
         .success { color: #4CAF50; }
@@ -59,72 +62,75 @@
             font-size: 13px;
             color: #a0a0a0;
             border: 1px solid #333;
+            max-height: 400px;
         }
         .hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <h1>Torn Log Checker</h1>
+    <h1>Torn API Log Checker</h1>
 
-    <!-- Login Section -->
+    <!-- Registration Section -->
     <div class="card">
-        <p style="margin-top: 0;">Enter your Limited Access API Key (saves to browser session):</p>
-        <input type="text" id="apiKeyInput" placeholder="16-character key" maxlength="16">
-        <button onclick="submitKey()">Submit</button>
+        <h2>Register Player</h2>
+        <p style="margin-top: 0; color: #aaa;">Enter your 16-char Limited Access key to join the roster.</p>
+        <input type="text" id="regKeyInput" placeholder="Player Limited Key" maxlength="16">
+        <button onclick="submitRegistration()">Register</button>
         <button onclick="logout()" id="logoutBtn" class="logout hidden">Logout</button>
-        <p id="statusMsg" style="margin-bottom: 0; margin-top: 15px;"></p>
+        <p id="regStatus" style="margin-bottom: 0; margin-top: 10px;"></p>
     </div>
 
-    <!-- Auto-displayed Logs for Logged-in User -->
-    <div id="myLogsSection" class="card hidden">
-        <h2 style="margin-top: 0;">My Recent Logs (Last 24h)</h2>
-        <pre id="myLogsContent">Loading logs...</pre>
+    <!-- Logs Display Area -->
+    <div id="logsSection" class="card hidden">
+        <h2 id="logsTitle">Logs</h2>
+        <pre id="logsContent">Waiting for selection...</pre>
     </div>
 
-    <!-- Roster Section -->
+    <!-- Roster Table -->
     <div class="card">
-        <h2 style="margin-top: 0;">Registered Players Roster</h2>
+        <h2>Registered Players Roster</h2>
         <table id="rosterTable">
             <thead>
                 <tr>
                     <th>Username</th>
                     <th>Level</th>
                     <th>User ID</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody id="rosterBody">
-                <tr><td colspan="3">Loading roster...</td></tr>
+                <tr><td colspan="4">Loading roster...</td></tr>
             </tbody>
         </table>
     </div>
 
     <script>
-        // ⚠️ REPLACE THIS WITH YOUR ACTUAL ESM.TOWN DEPLOYMENT URL
+        // ⚠️ REPLACE WITH YOUR ESM.TOWN URL
         const API_BASE = "https://unboundddestiny--1cf34a4c90c111f182311607ee4eb77e.web.val.run"; 
 
+        let currentUser = null;
+
         window.onload = () => {
-            const savedKey = sessionStorage.getItem('torn_api_key');
-            if (savedKey) {
-                document.getElementById('apiKeyInput').value = savedKey;
+            const savedUser = sessionStorage.getItem('torn_current_user');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                document.getElementById('regKeyInput').value = sessionStorage.getItem('torn_player_key') || '';
                 document.getElementById('logoutBtn').classList.remove('hidden');
-                submitKey(true); // Silent auto-login on page load
-            } else {
-                fetchRoster(); // Still show roster even if not logged in
+                fetchRoster();
             }
         };
 
-        async function submitKey(silent = false) {
-            const key = document.getElementById('apiKeyInput').value.trim();
-            const statusMsg = document.getElementById('statusMsg');
+        async function submitRegistration() {
+            const key = document.getElementById('regKeyInput').value.trim();
+            const status = document.getElementById('regStatus');
             
             if (!key || key.length !== 16) {
-                if (!silent) statusMsg.innerHTML = '<span class="error">Please enter a valid 16-character key.</span>';
+                status.innerHTML = '<span class="error">Invalid key length.</span>';
                 return;
             }
 
-            if (!silent) statusMsg.textContent = 'Verifying key...';
-
+            status.textContent = 'Registering...';
             try {
                 const res = await fetch(`${API_BASE}/api/submit-key`, {
                     method: 'POST',
@@ -134,55 +140,22 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    sessionStorage.setItem('torn_api_key', key);
-                    document.getElementById('logoutBtn').classList.remove('hidden');
-                    if (!silent) {
-                        statusMsg.innerHTML = `<span class="success">Successfully registered as <strong>${data.username}</strong> (Level ${data.level})</span>`;
-                    }
+                    currentUser = {
+                        userId: data.userId,
+                        username: data.username,
+                        isAdmin: data.isAdmin
+                    };
+                    sessionStorage.setItem('torn_current_user', JSON.stringify(currentUser));
+                    sessionStorage.setItem('torn_player_key', key);
                     
+                    document.getElementById('logoutBtn').classList.remove('hidden');
+                    status.innerHTML = `<span class="success">Registered as ${data.username} ${data.isAdmin ? '(Admin)' : ''}</span>`;
                     fetchRoster();
-                    fetchMyLogs(data.userId); // Automatically fetch and show logs for this player
                 } else {
-                    if (!silent) statusMsg.innerHTML = `<span class="error">${data.error}</span>`;
+                    status.innerHTML = `<span class="error">${data.error}</span>`;
                 }
             } catch (err) {
-                if (!silent) statusMsg.innerHTML = '<span class="error">Network error. Check console.</span>';
-                console.error(err);
-            }
-        }
-
-        async function fetchMyLogs(userId) {
-            const logsSection = document.getElementById('myLogsSection');
-            const logsContent = document.getElementById('myLogsContent');
-            logsSection.classList.remove('hidden');
-            logsContent.textContent = 'Fetching logs from Torn API...';
-
-            try {
-                const res = await fetch(`${API_BASE}/api/inspect`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ targetUserId: userId })
-                });
-                const data = await res.json();
-
-                if (data.success && data.logs) {
-                    if (data.logs.length === 0) {
-                        logsContent.textContent = 'No logs found in the last 24 hours.';
-                    } else {
-                        // Format the sorted log array into clean, readable text
-                        const formatted = data.logs.map(log => {
-                            const time = new Date(log.timestamp * 1000).toLocaleString();
-                            const details = log.log || log.action || log.message || JSON.stringify(log);
-                            return `[${time}] ${details}`;
-                        }).join('\n\n');
-                        logsContent.textContent = formatted;
-                    }
-                } else {
-                    logsContent.innerHTML = `<span class="error">${data.error || 'Failed to load logs.'}</span>`;
-                }
-            } catch (err) {
-                logsContent.innerHTML = '<span class="error">Failed to fetch logs. Check console.</span>';
-                console.error(err);
+                status.innerHTML = '<span class="error">Network error.</span>';
             }
         }
 
@@ -194,32 +167,90 @@
                 tbody.innerHTML = '';
 
                 if (!roster || roster.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="3">No players registered yet.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="4">No players registered.</td></tr>';
                     return;
                 }
 
                 roster.forEach(p => {
-                    // Safe fallbacks to prevent "undefined" from ever showing
                     const username = p.username || 'Unknown';
                     const level = p.level ?? 0;
                     const userId = p.userId || 'N/A';
                     
-                    const row = `<tr><td>${username}</td><td>${level}</td><td>${userId}</td></tr>`;
+                    // Only show inspect button if current user is admin
+                    let actionCell = '';
+                    if (currentUser && currentUser.isAdmin) {
+                        actionCell = `<td><button class="inspect" onclick="inspectPlayer(${userId}, '${username}')">View Logs</button></td>`;
+                    } else {
+                        actionCell = `<td>-</td>`;
+                    }
+
+                    const row = `
+                        <tr>
+                            <td>${username} ${p.isAdmin ? '👑' : ''}</td>
+                            <td>${level}</td>
+                            <td>${userId}</td>
+                            ${actionCell}
+                        </tr>`;
                     tbody.innerHTML += row;
                 });
             } catch (err) {
-                console.error('Failed to fetch roster', err);
-                document.getElementById('rosterBody').innerHTML = '<tr><td colspan="3" class="error">Failed to load roster.</td></tr>';
+                console.error(err);
+            }
+        }
+
+        async function inspectPlayer(targetUserId, username) {
+            if (!currentUser || !currentUser.isAdmin) {
+                alert("You do not have permission to view logs.");
+                return;
+            }
+
+            const logsSection = document.getElementById('logsSection');
+            const logsTitle = document.getElementById('logsTitle');
+            const logsContent = document.getElementById('logsContent');
+            
+            logsSection.classList.remove('hidden');
+            logsTitle.textContent = `Logs for ${username} (ID: ${targetUserId})`;
+            logsContent.textContent = 'Fetching logs...';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/inspect`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        targetUserId: targetUserId,
+                        inspectorUserId: currentUser.userId 
+                    })
+                });
+                
+                const data = await res.json();
+
+                if (data.success && data.logs) {
+                    if (data.logs.length === 0) {
+                        logsContent.textContent = "No logs found in last 24 hours.";
+                    } else {
+                        const formatted = data.logs.map(log => {
+                            const time = new Date(log.timestamp * 1000).toLocaleString();
+                            const msg = log.log || log.action || JSON.stringify(log);
+                            return `[${time}] ${msg}`;
+                        }).join('\n\n');
+                        logsContent.textContent = formatted;
+                    }
+                } else {
+                    logsContent.innerHTML = `<span class="error">${data.error || 'Failed to load logs.'}</span>`;
+                }
+            } catch (err) {
+                logsContent.innerHTML = '<span class="error">Network error while fetching logs.</span>';
             }
         }
 
         function logout() {
-            sessionStorage.removeItem('torn_api_key');
-            document.getElementById('apiKeyInput').value = '';
+            sessionStorage.removeItem('torn_current_user');
+            sessionStorage.removeItem('torn_player_key');
+            currentUser = null;
+            document.getElementById('regKeyInput').value = '';
             document.getElementById('logoutBtn').classList.add('hidden');
-            document.getElementById('myLogsSection').classList.add('hidden');
-            document.getElementById('statusMsg').textContent = 'Logged out successfully.';
-            document.getElementById('rosterBody').innerHTML = '<tr><td colspan="3">Loading roster...</td></tr>';
+            document.getElementById('regStatus').textContent = '';
+            document.getElementById('logsSection').classList.add('hidden');
             fetchRoster();
         }
     </script>

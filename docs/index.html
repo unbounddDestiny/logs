@@ -6,13 +6,12 @@
     <title>Torn API Log Checker</title>
     <style>
         :root {
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
-            --accent-color: #e54242;
+            --bg-color: #1a1a1a;
             --text-color: #e0e0e0;
-            --text-muted: #888888;
-            --border-color: #333333;
-            --success-color: #2e7d32;
+            --accent-color: #4CAF50;
+            --error-color: #f44336;
+            --card-bg: #2d2d2d;
+            --border-color: #404040;
         }
 
         body {
@@ -21,273 +20,319 @@
             color: var(--text-color);
             margin: 0;
             padding: 20px;
-            display: flex;
-            justify-content: center;
+            line-height: 1.6;
         }
 
-        .container { width: 100%; max-width: 850px; }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: var(--accent-color);
+        }
+
+        /* Card Styling */
         .card {
             background-color: var(--card-bg);
             border-radius: 8px;
-            padding: 24px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            padding: 20px;
             margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             border: 1px solid var(--border-color);
         }
 
-        h1, h2 { margin-top: 0; color: #ffffff; }
-        .input-row { display: flex; gap: 10px; margin-top: 10px; }
+        /* Form Elements */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
 
-        input[type="password"] {
-            flex: 1;
-            padding: 12px;
+        input[type="text"] {
+            padding: 10px;
             border-radius: 4px;
             border: 1px solid var(--border-color);
-            background-color: #2a2a2a;
-            color: #ffffff;
-            font-size: 1em;
-            outline: none;
+            background-color: #333;
+            color: white;
+            width: 300px;
+            font-size: 16px;
         }
 
         button {
-            padding: 10px 16px;
+            padding: 10px 20px;
             border-radius: 4px;
             border: none;
-            background-color: var(--accent-color);
-            color: white;
-            font-weight: bold;
             cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s;
         }
 
-        button:hover { background-color: #c62828; }
-        button.secondary { background-color: #333333; }
-        button.secondary:hover { background-color: #444444; }
+        button:hover {
+            opacity: 0.9;
+        }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
-        th { background-color: #252525; color: var(--text-muted); font-size: 0.85em; text-transform: uppercase; }
+        .btn-submit { background-color: var(--accent-color); color: white; }
+        .btn-logout { background-color: var(--error-color); color: white; }
+        .btn-inspect { background-color: #2196F3; color: white; padding: 5px 10px; font-size: 12px; }
 
-        .status { margin-top: 12px; font-weight: bold; }
-        .hidden { display: none; }
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
 
-        /* Collapsible Log UI Styles */
-        .log-row td {
-            padding: 0;
-            background-color: #161616;
+        th, td {
+            padding: 12px;
+            text-align: left;
             border-bottom: 1px solid var(--border-color);
         }
 
-        .collapsible-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out, padding 0.3s ease;
-            padding: 0 16px;
+        th {
+            background-color: #333;
+            color: var(--accent-color);
         }
 
-        .collapsible-content.open {
-            max-height: 400px;
-            padding: 16px;
+        tr:hover {
+            background-color: #383838;
+        }
+
+        /* Utility */
+        .hidden { display: none; }
+        .status-msg {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .success { color: var(--accent-color); }
+        .error { color: var(--error-color); }
+        
+        /* Modal for Logs */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-height: 80vh;
             overflow-y: auto;
+            position: relative;
         }
-
-        pre {
-            margin: 0;
-            background: #0d0d0d;
-            padding: 12px;
-            border-radius: 4px;
-            color: #00ff66;
+        .close-modal {
+            position: absolute; top: 10px; right: 15px;
+            font-size: 24px; cursor: pointer; color: var(--error-color);
+        }
+        .log-entry {
+            border-bottom: 1px solid #444;
+            padding: 8px 0;
             font-family: monospace;
-            font-size: 0.85em;
-            white-space: pre-wrap;
-            word-break: break-all;
+            font-size: 13px;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <h1>Torn API Key Portal</h1>
+
+    <!-- Key Submission Section -->
     <div class="card">
-        <h1>Torn API Key Portal</h1>
-        <p style="color: var(--text-muted);">Enter your Limited Access API Key. Saves automatically to session storage.</p>
-        <div class="input-row">
-            <input type="password" id="apiKeyInput" placeholder="Enter 16-character Limited API Key..." maxlength="16">
-            <button onclick="submitKey()">Submit Key</button>
-            <button class="secondary" onclick="logout()">Logout</button>
+        <p style="text-align: center; margin: 0;">Enter your Limited Access API Key. Saves automatically to session storage.</p>
+        <div class="input-group">
+            <input type="text" id="apiKeyInput" placeholder="Enter 16-character Key" maxlength="16">
+            <button class="btn-submit" onclick="submitKey()">Submit Key</button>
+            <button class="btn-logout hidden" id="logoutBtn" onclick="logout()">Logout</button>
         </div>
-        <div id="statusMsg" class="status"></div>
+        <div id="statusMsg" class="status-msg"></div>
     </div>
 
+    <!-- Roster Section -->
     <div class="card">
         <h2>Registered Players Roster</h2>
-        <table>
+        <table id="rosterTable">
             <thead>
                 <tr>
                     <th>Username</th>
                     <th>Level</th>
-                    <th id="adminActionHeader" class="hidden">Admin Actions</th>
+                    <th>User ID</th>
+                    <th>Admin Actions</th>
                 </tr>
             </thead>
-            <tbody id="rosterTableBody"></tbody>
+            <tbody id="rosterBody">
+                <!-- Rows will be injected here -->
+            </tbody>
         </table>
     </div>
 </div>
 
+<!-- Log Modal -->
+<div id="logModal" class="modal hidden">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <h3 id="modalTitle">Player Logs</h3>
+        <div id="modalLogs"></div>
+    </div>
+</div>
+
 <script>
-    const VAL_TOWN_URL = "https://unboundddestiny--2280552090c311f19c611607ee4eb77e.web.val.run"; // Update with your actual Val URL
-    const PRESET_ADMIN_IDS = [4427995, 9876543]; // Put your Torn User IDs here
+    // Use the actual deployment URL of your ESM Town function
+    const API_BASE = "https://your-esm-town-function-url.esm.run"; 
 
-    let currentUserId = null;
-    let isAdmin = false;
+    const apiKeyInput = document.getElementById('apiKeyInput');
+    const statusMsg = document.getElementById('statusMsg');
+    const rosterBody = document.getElementById('rosterBody');
+    const logoutBtn = document.getElementById('logoutBtn');
 
-    async function initSession() {
-        const savedKey = localStorage.getItem('torn_api_key');
+    // Load key from session storage on load
+    window.onload = () => {
+        const savedKey = sessionStorage.getItem('torn_api_key');
         if (savedKey) {
-            document.getElementById('apiKeyInput').value = savedKey;
-            await processKey(savedKey);
-        } else {
-            loadRoster();
+            apiKeyInput.value = savedKey;
+            logoutBtn.classList.remove('hidden');
+            fetchRoster();
         }
-    }
+    };
 
     async function submitKey() {
-        const apiKey = document.getElementById('apiKeyInput').value.trim();
-        if (!apiKey) return;
-        await processKey(apiKey);
-    }
+        const key = apiKeyInput.value.trim();
+        setStatus('', '');
 
-    async function processKey(apiKey) {
-        const statusDiv = document.getElementById('statusMsg');
-        statusDiv.style.color = "white";
-        statusDiv.textContent = "Verifying API key...";
-
-        try {
-            const res = await fetch(`${VAL_TOWN_URL}/api/submit-key`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ apiKey })
-            });
-
-            const data = await res.json();
-
-            if (res.ok && data.success) {
-                localStorage.setItem('torn_api_key', apiKey);
-                currentUserId = data.userId;
-                isAdmin = PRESET_ADMIN_IDS.includes(Number(currentUserId));
-
-                statusDiv.style.color = "#4caf50";
-                statusDiv.textContent = `Welcome, ${data.username}! (Level ${data.level})` + (isAdmin ? " [ADMIN SESSION]" : "");
-
-                toggleAdminUI(isAdmin);
-                loadRoster();
-            } else {
-                statusDiv.style.color = "#f44336";
-                statusDiv.textContent = `❌ ${data.error}`;
-                toggleAdminUI(false);
-            }
-        } catch {
-            statusDiv.style.color = "#f44336";
-            statusDiv.textContent = "❌ Connection error.";
-        }
-    }
-
-    function toggleAdminUI(adminStatus) {
-        if (adminStatus) {
-            document.getElementById('adminActionHeader').classList.remove('hidden');
-        } else {
-            document.getElementById('adminActionHeader').classList.add('hidden');
-        }
-    }
-
-    function logout() {
-        localStorage.removeItem('torn_api_key');
-        document.getElementById('apiKeyInput').value = '';
-        currentUserId = null;
-        isAdmin = false;
-        document.getElementById('statusMsg').textContent = "Logged out.";
-        toggleAdminUI(false);
-        loadRoster();
-    }
-
-    async function loadRoster() {
-        try {
-            const res = await fetch(`${VAL_TOWN_URL}/api/roster`);
-            const roster = await res.json();
-            const tbody = document.getElementById('rosterTableBody');
-            tbody.innerHTML = '';
-
-            roster.forEach(player => {
-                // User Row
-                const userRow = document.createElement('tr');
-                let adminCell = isAdmin 
-                    ? `<td><button onclick="toggleLogs(${player.userId})">Inspect Logs</button></td>` 
-                    : '';
-
-                userRow.innerHTML = `
-                    <td><strong>${player.username}</strong></td>
-                    <td>Level ${player.level}</td>
-                    ${adminCell}
-                `;
-                tbody.appendChild(userRow);
-
-                // Collapsible Log Drawer Row
-                if (isAdmin) {
-                    const logRow = document.createElement('tr');
-                    logRow.className = 'log-row';
-                    logRow.innerHTML = `
-                        <td colspan="3">
-                            <div id="logs-${player.userId}" class="collapsible-content">
-                                <pre>Click 'Inspect Logs' to fetch log data...</pre>
-                            </div>
-                        </td>
-                    `;
-                    tbody.appendChild(logRow);
-                }
-            });
-        } catch (e) {
-            console.error("Failed to load roster", e);
-        }
-    }
-
-    async function toggleLogs(targetUserId) {
-        const container = document.getElementById(`logs-${targetUserId}`);
-        
-        // Toggle close if already open
-        if (container.classList.contains('open')) {
-            container.classList.remove('open');
+        if (!key || key.length !== 16) {
+            setStatus('Please enter a valid 16-character key.', 'error');
             return;
         }
 
-        // Open container and fetch logs
-        container.classList.add('open');
-        container.innerHTML = "<pre>Fetching last 24h Torn logs...</pre>";
-
         try {
-            const res = await fetch(`${VAL_TOWN_URL}/api/inspect`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ targetUserId })
+            const res = await fetch(`${API_BASE}/api/submit-key`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ apiKey: key })
             });
 
             const data = await res.json();
 
-            if (res.ok && data.success) {
-                const logEntries = data.logs;
-                const logCount = Object.keys(logEntries).length;
-
-                if (logCount === 0) {
-                    container.innerHTML = `<pre style="color:#e0e0e0;">No logs recorded in the last 24 hours for this player.</pre>`;
-                } else {
-                    container.innerHTML = `<pre>${JSON.stringify(logEntries, null, 2)}</pre>`;
-                }
+            if (data.success) {
+                sessionStorage.setItem('torn_api_key', key);
+                logoutBtn.classList.remove('hidden');
+                setStatus(`Successfully registered as ${data.username} (Level ${data.level})`, 'success');
+                fetchRoster(); // Refresh table immediately
             } else {
-                container.innerHTML = `<pre style="color:#f44336;">Error: ${data.error}</pre>`;
+                setStatus(data.error || 'Failed to submit key.', 'error');
             }
-        } catch {
-            container.innerHTML = `<pre style="color:#f44336;">Failed to communicate with server.</pre>`;
+        } catch (err) {
+            setStatus('Network error. Please check your connection.', 'error');
+            console.error(err);
         }
     }
 
-    initSession();
+    async function fetchRoster() {
+        try {
+            const res = await fetch(`${API_BASE}/api/roster`);
+            const roster = await res.json();
+            
+            rosterBody.innerHTML = ''; // Clear current list
+            
+            if (!Array.isArray(roster) || roster.length === 0) {
+                rosterBody.innerHTML = '<tr><td colspan="4" style="text-align:center">No players registered yet.</td></tr>';
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+
+            roster.forEach(player => {
+                // FIX: Ensure level is never undefined
+                const level = player.level ?? 0; 
+                const username = player.username || 'Unknown';
+                const userId = player.userId || 'N/A';
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${username}</td>
+                    <td>${level}</td>
+                    <td>${userId}</td>
+                    <td><button class="btn-inspect" onclick="inspectPlayer(${userId})">Inspect Logs</button></td>
+                `;
+                fragment.appendChild(row);
+            });
+
+            rosterBody.appendChild(fragment);
+        } catch (err) {
+            console.error("Failed to fetch roster:", err);
+        }
+    }
+
+    async function inspectPlayer(userId) {
+        const modal = document.getElementById('logModal');
+        const modalLogs = document.getElementById('modalLogs');
+        const modalTitle = document.getElementById('modalTitle');
+        
+        modal.classList.remove('hidden');
+        modalTitle.textContent = `Loading logs for User ID: ${userId}...`;
+        modalLogs.innerHTML = '<p>Fetching data from Torn API...</p>';
+
+        try {
+            const res = await fetch(`${API_BASE}/api/inspect`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targetUserId: userId })
+            });
+
+            const data = await res.json();
+
+            if (data.success && data.logs) {
+                modalTitle.textContent = `Logs for User ID: ${userId}`;
+                
+                if (Object.keys(data.logs).length === 0) {
+                    modalLogs.innerHTML = '<p>No logs found in the last 24 hours.</p>';
+                } else {
+                    let html = '';
+                    // The backend now returns a sorted array, but we handle both formats just in case
+                    const logArray = Array.isArray(data.logs) ? data.logs : Object.entries(data.logs);
+                    
+                    logArray.forEach(log => {
+                        // Handle array format from our optimized backend
+                        const details = Array.isArray(log) ? log[1] : log;
+                        const timestamp = Array.isArray(log) ? new Date(log[0] * 1000).toLocaleString() : 'N/A';
+                        
+                        // Extracting common log fields
+                        const action = details.log || details.action || JSON.stringify(details);
+                        html += `<div class="log-entry"><strong>[${timestamp}]</strong> ${action}</div>`;
+                    });
+                    modalLogs.innerHTML = html;
+                }
+            } else {
+                modalLogs.innerHTML = `<p class="error">${data.error || 'Failed to load logs.'}</p>`;
+            }
+        } catch (err) {
+            modalLogs.innerHTML = '<p class="error">Network error while fetching logs.</p>';
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('logModal').classList.add('hidden');
+    }
+
+    function logout() {
+        sessionStorage.removeItem('torn_api_key');
+        apiKeyInput.value = '';
+        logoutBtn.classList.add('hidden');
+        setStatus('Logged out successfully.', 'success');
+        setTimeout(() => setStatus('', ''), 2000);
+    }
+
+    function setStatus(msg, type) {
+        statusMsg.textContent = msg;
+        statusMsg.className = 'status-msg ' + type;
+    }
 </script>
+
 </body>
 </html>
